@@ -1,0 +1,85 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f5f7;color:#1a1a2e;line-height:1.5}
+a{color:#4361ee;text-decoration:none}
+
+/* Nav */
+.nav{background:#1a1a2e;padding:.75rem 2rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.nav .brand{color:#fff;font-weight:700;font-size:1.1rem;margin-right:auto}
+.nav a{color:#ffffffcc;font-size:.875rem}
+.nav a:hover{color:#fff}
+
+/* Layout */
+.container{max-width:1100px;margin:2rem auto;padding:0 1rem}
+.card{background:#fff;border-radius:8px;padding:1.5rem 2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem}
+.card h2{margin-bottom:1rem;font-size:1.25rem}
+
+/* Flash */
+.alert{padding:.6rem 1rem;border-radius:4px;margin-bottom:1rem;font-size:.9rem}
+.alert-error{background:#fdecea;color:#c62828;border:1px solid #f5c6cb}
+.alert-success{background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9}
+
+/* Table */
+table{width:100%;border-collapse:collapse}
+th,td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #eee;font-size:.875rem}
+th{background:#f9f9fb;font-weight:600;white-space:nowrap}
+td{vertical-align:middle}
+
+/* Buttons */
+.btn{display:inline-block;padding:.5rem 1rem;border:none;border-radius:4px;cursor:pointer;font-size:.875rem;text-decoration:none;font-family:inherit;line-height:1.4}
+.btn-primary{background:#4361ee;color:#fff}
+.btn-primary:hover{background:#3a56d4}
+.btn-danger{background:#e63946;color:#fff}
+.btn-danger:hover{background:#cf2f3c}
+.btn-success{background:#2a9d8f;color:#fff}
+.btn-success:hover{background:#248a7e}
+.btn-secondary{background:#6c757d;color:#fff}
+.btn-secondary:hover{background:#5a6268}
+.btn-sm{padding:.3rem .6rem;font-size:.8rem}
+
+/* Forms */
+.form-group{margin-bottom:.85rem}
+.form-group label{display:block;margin-bottom:.2rem;font-weight:500;font-size:.85rem}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:.45rem .6rem;border:1px solid #d0d5dd;border-radius:4px;font-size:.875rem;font-family:inherit}
+.form-group textarea{resize:vertical;min-height:60px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:0 1rem}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 1rem}
+
+/* Login */
+.login-wrapper{display:flex;justify-content:center;align-items:center;min-height:80vh}
+.login-card{max-width:400px;width:100%}
+.login-card h1{text-align:center;margin-bottom:1.25rem;font-size:1.4rem}
+
+/* Clock */
+.clock-display{font-size:3rem;font-weight:700;text-align:center;margin:.75rem 0;font-variant-numeric:tabular-nums}
+.attendance-actions{text-align:center;margin-bottom:.5rem}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;justify-content:center;align-items:flex-start;padding:3rem 1rem;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:8px;padding:2rem;width:100%;max-width:720px;position:relative}
+.modal h2{margin-bottom:1rem}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.4rem;cursor:pointer;color:#666}
+
+/* Badges */
+.badge{display:inline-block;padding:.15rem .5rem;border-radius:3px;font-size:.75rem;font-weight:600}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#fdecea;color:#c62828}
+.badge-grey{background:#eee;color:#666}
+
+/* Utility */
+.text-right{text-align:right}
+.mb-1{margin-bottom:1rem}
+.mt-1{margin-top:1rem}
+.gap-sm{display:inline-flex;gap:.35rem;align-items:center}
+
+/* Section dividers for forms */
+.form-section{font-weight:600;font-size:.95rem;margin:1.25rem 0 .5rem;padding-bottom:.35rem;border-bottom:1px solid #eee}
+.form-section:first-child{margin-top:0}
+
+@media(max-width:768px){
+  .form-row,.form-row-3{grid-template-columns:1fr}
+  .nav{padding:.75rem 1rem;gap:1rem}
+  .container{padding:0 .5rem}
+  table{font-size:.8rem}
+  th,td{padding:.4rem}
+}

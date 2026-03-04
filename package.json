@@ -11,8 +11,12 @@
     "node": "18.x"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.4",
-    "express": "^4.18.2"
+    "ejs": "^4.0.1",
+    "express": "^4.18.2",
+    "express-session": "^1.19.0",
+    "mysql2": "^3.18.2"
   },
   "devDependencies": {
     "sharp": "^0.34.5"

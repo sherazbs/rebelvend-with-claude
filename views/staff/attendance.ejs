@@ -1,0 +1,65 @@
+<%- include('_layout_top', { title: 'Attendance' }) %>
+
+<div class="card" style="text-align:center">
+  <h2>Welcome, <%= user.fullName %></h2>
+  <div class="clock-display" id="clock">--:--:--</div>
+
+  <div class="attendance-actions">
+    <% if (openSession) { %>
+      <p class="mb-1">Clocked in at <strong><%= formatTime(openSession.clock_in) %></strong></p>
+      <form method="POST" action="/staff/attendance/clock-out" style="display:inline">
+        <button type="submit" class="btn btn-danger">Clock Out</button>
+      </form>
+    <% } else { %>
+      <form method="POST" action="/staff/attendance/clock-in" style="display:inline">
+        <button type="submit" class="btn btn-success">Clock In</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Today's Sessions</h2>
+  <% if (sessions.length === 0) { %>
+    <p>No sessions recorded today.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Break</th>
+          <th>Worked</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% sessions.forEach(s => { %>
+        <tr>
+          <td><%= formatTime(s.clock_in) %></td>
+          <td><%= s.clock_out ? formatTime(s.clock_out) : '-' %></td>
+          <td><%= s.break_minutes %> min</td>
+          <td><%= formatWorked(s.worked_minutes) %></td>
+          <td>
+            <span class="badge <%= s.status === 'OPEN' ? 'badge-green' : s.status === 'CLOSED' ? 'badge-grey' : 'badge-red' %>">
+              <%= s.status %>
+            </span>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+(function tick(){
+  const el=document.getElementById('clock');
+  if(!el)return;
+  const now=new Date();
+  el.textContent=now.toLocaleTimeString('en-GB');
+  setTimeout(tick,1000);
+})();
+</script>
+
+<%- include('_layout_bottom') %>

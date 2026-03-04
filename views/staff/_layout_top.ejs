@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' – ' : '' %>Rebelvend Staff</title>
+  <link rel="stylesheet" href="/staff/styles.css">
+</head>
+<body>
+<nav class="nav">
+  <span class="brand">Rebelvend Staff</span>
+  <% if (user) { %>
+    <a href="/staff/attendance">Attendance</a>
+    <% if (user.role === 'ADMIN') { %>
+      <a href="/staff/admin/employees">Employees</a>
+      <a href="/staff/admin/attendance">Attendance Admin</a>
+    <% } %>
+    <a href="/staff/logout">Log Out</a>
+  <% } %>
+</nav>
+<div class="container">
+  <% if (flash) { %>
+    <div class="alert alert-<%= flash.type %>"><%= flash.message %></div>
+  <% } %>

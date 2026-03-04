@@ -1,0 +1,281 @@
+<%- include('../_layout_top', { title: 'Employees' }) %>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <h2 style="margin:0">Employees</h2>
+    <button class="btn btn-primary" onclick="openCreateModal()">Add Employee</button>
+  </div>
+
+  <% if (employees.length === 0) { %>
+    <p>No employees yet.</p>
+  <% } else { %>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Job Title</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Account</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% employees.forEach(emp => { %>
+        <tr>
+          <td><%= emp.full_name %></td>
+          <td><%= emp.email %></td>
+          <td><%= emp.job_title || '-' %></td>
+          <td><%= emp.employment_type %></td>
+          <td>
+            <span class="badge <%= emp.is_active ? 'badge-green' : 'badge-red' %>">
+              <%= emp.is_active ? 'Active' : 'Inactive' %>
+            </span>
+          </td>
+          <td>
+            <% if (emp.has_password) { %>
+              <span class="badge badge-green">Ready</span>
+            <% } else { %>
+              <span class="badge badge-grey">No password</span>
+            <% } %>
+          </td>
+          <td>
+            <div class="gap-sm">
+              <button class="btn btn-sm btn-secondary" onclick='openEditModal(<%- JSON.stringify(emp) %>)'>Edit</button>
+              <% if (emp.is_active) { %>
+                <form method="POST" action="/staff/admin/employees/<%= emp.id %>/deactivate" style="display:inline"
+                      onsubmit="return confirm('Deactivate this employee?')">
+                  <button type="submit" class="btn btn-sm btn-danger">Deactivate</button>
+                </form>
+                <form method="POST" action="/staff/admin/employees/<%= emp.id %>/invite" style="display:inline">
+                  <button type="submit" class="btn btn-sm btn-primary">Send Invite</button>
+                </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="empModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2 id="modalTitle">Add Employee</h2>
+    <form id="empForm" method="POST" action="/staff/admin/employees">
+
+      <div class="form-section">Personal Information</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="full_name" id="f_full_name" required>
+        </div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" name="email" id="f_email" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" name="date_of_birth" id="f_date_of_birth">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" name="phone" id="f_phone">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Address Line 1</label>
+          <input type="text" name="address_line1" id="f_address_line1">
+        </div>
+        <div class="form-group">
+          <label>Address Line 2</label>
+          <input type="text" name="address_line2" id="f_address_line2">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" name="city" id="f_city">
+        </div>
+        <div class="form-group">
+          <label>Postcode</label>
+          <input type="text" name="postcode" id="f_postcode">
+        </div>
+      </div>
+
+      <div class="form-section">Employment</div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Job Title</label>
+          <input type="text" name="job_title" id="f_job_title">
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" name="start_date" id="f_start_date">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select name="employment_type" id="f_employment_type">
+            <option value="FULL_TIME">Full Time</option>
+            <option value="PART_TIME">Part Time</option>
+            <option value="CONTRACTOR">Contractor</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contracted Hours/Week</label>
+          <input type="number" step="0.5" name="contracted_hours_per_week" id="f_contracted_hours_per_week">
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select name="role" id="f_role">
+            <option value="EMPLOYEE">Employee</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">Emergency Contact</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Contact Name</label>
+          <input type="text" name="emergency_contact_name" id="f_emergency_contact_name">
+        </div>
+        <div class="form-group">
+          <label>Contact Phone</label>
+          <input type="text" name="emergency_contact_phone" id="f_emergency_contact_phone">
+        </div>
+      </div>
+
+      <div class="form-section">Payroll</div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>NI Number</label>
+          <input type="text" name="national_insurance_number" id="f_national_insurance_number">
+        </div>
+        <div class="form-group">
+          <label>Tax Code</label>
+          <input type="text" name="tax_code" id="f_tax_code">
+        </div>
+        <div class="form-group">
+          <label>Payroll ID</label>
+          <input type="text" name="payroll_id" id="f_payroll_id">
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Pay Type</label>
+          <select name="pay_type" id="f_pay_type">
+            <option value="HOURLY">Hourly</option>
+            <option value="SALARY">Salary</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Pay Rate</label>
+          <input type="number" step="0.01" name="pay_rate" id="f_pay_rate">
+        </div>
+        <div class="form-group">
+          <label>Pay Frequency</label>
+          <select name="pay_frequency" id="f_pay_frequency">
+            <option value="MONTHLY">Monthly</option>
+            <option value="WEEKLY">Weekly</option>
+            <option value="FOUR_WEEKLY">Four Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section">Right to Work</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Checked Date</label>
+          <input type="date" name="rtw_checked_date" id="f_rtw_checked_date">
+        </div>
+        <div class="form-group">
+          <label>Check Method</label>
+          <select name="check_method" id="f_check_method">
+            <option value="">--</option>
+            <option value="ONLINE_SHARE_CODE">Online Share Code</option>
+            <option value="MANUAL_DOCS">Manual Documents</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>RTW Type</label>
+          <input type="text" name="rt_work_type" id="f_rt_work_type">
+        </div>
+        <div class="form-group">
+          <label>Visa Expiry Date</label>
+          <input type="date" name="visa_expiry_date" id="f_visa_expiry_date">
+        </div>
+      </div>
+
+      <div class="mt-1">
+        <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Create Employee</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openCreateModal(){
+  document.getElementById('modalTitle').textContent='Add Employee';
+  document.getElementById('modalSubmitBtn').textContent='Create Employee';
+  document.getElementById('empForm').action='/staff/admin/employees';
+  document.getElementById('empForm').reset();
+  document.getElementById('f_role').closest('.form-group').style.display='';
+  document.getElementById('empModal').classList.add('open');
+}
+
+function openEditModal(emp){
+  document.getElementById('modalTitle').textContent='Edit Employee';
+  document.getElementById('modalSubmitBtn').textContent='Save Changes';
+  document.getElementById('empForm').action='/staff/admin/employees/'+emp.id+'/edit';
+  // hide role on edit
+  document.getElementById('f_role').closest('.form-group').style.display='none';
+
+  var fields={
+    full_name:emp.full_name,email:emp.email,
+    date_of_birth:fmt(emp.date_of_birth),phone:emp.phone,
+    address_line1:emp.address_line1,address_line2:emp.address_line2,
+    city:emp.city,postcode:emp.postcode,
+    job_title:emp.job_title,start_date:fmt(emp.start_date),
+    employment_type:emp.employment_type,
+    contracted_hours_per_week:emp.contracted_hours_per_week,
+    emergency_contact_name:emp.emergency_contact_name,
+    emergency_contact_phone:emp.emergency_contact_phone,
+    national_insurance_number:emp.national_insurance_number,
+    tax_code:emp.tax_code,payroll_id:emp.payroll_id,
+    pay_type:emp.pay_type,pay_rate:emp.pay_rate,pay_frequency:emp.pay_frequency,
+    rtw_checked_date:fmt(emp.rtw_checked_date),
+    check_method:emp.check_method||'',
+    rt_work_type:emp.rt_work_type,
+    visa_expiry_date:fmt(emp.visa_expiry_date)
+  };
+  for(var k in fields){
+    var el=document.getElementById('f_'+k);
+    if(el) el.value=fields[k]||'';
+  }
+  document.getElementById('empModal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('empModal').classList.remove('open')}
+function fmt(d){if(!d)return '';return new Date(d).toISOString().slice(0,10)}
+
+document.getElementById('empModal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+</script>
+
+<%- include('../_layout_bottom') %>

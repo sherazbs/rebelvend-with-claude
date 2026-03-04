@@ -1,0 +1,137 @@
+<%- include('../_layout_top', { title: 'Attendance Admin' }) %>
+
+<div class="card">
+  <h2>Attendance Records</h2>
+  <form method="GET" action="/staff/admin/attendance" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem">
+    <div class="form-group" style="margin:0;min-width:160px">
+      <label>Employee</label>
+      <select name="employee_id">
+        <option value="">All</option>
+        <% employees.forEach(e => { %>
+          <option value="<%= e.id %>" <%= filters.employee_id == e.id ? 'selected' : '' %>><%= e.full_name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>From</label>
+      <input type="date" name="from" value="<%= filters.from || '' %>">
+    </div>
+    <div class="form-group" style="margin:0">
+      <label>To</label>
+      <input type="date" name="to" value="<%= filters.to || '' %>">
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="/staff/admin/attendance/export?employee_id=<%= filters.employee_id || '' %>&from=<%= filters.from || '' %>&to=<%= filters.to || '' %>"
+       class="btn btn-secondary">Export CSV</a>
+  </form>
+
+  <% if (sessions.length === 0) { %>
+    <p>No sessions found.</p>
+  <% } else { %>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Date</th>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Break</th>
+          <th>Worked</th>
+          <th>Status</th>
+          <th>Note</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% sessions.forEach(s => { %>
+        <tr>
+          <td><%= s.full_name %></td>
+          <td><%= formatDate(s.work_date) %></td>
+          <td><%= formatTime(s.clock_in) %></td>
+          <td><%= s.clock_out ? formatTime(s.clock_out) : '-' %></td>
+          <td><%= s.break_minutes %></td>
+          <td><%= formatWorked(s.worked_minutes) %></td>
+          <td>
+            <span class="badge <%= s.status === 'OPEN' ? 'badge-green' : s.status === 'CLOSED' ? 'badge-grey' : 'badge-red' %>">
+              <%= s.status %>
+            </span>
+          </td>
+          <td><%= s.note || '' %></td>
+          <td>
+            <button class="btn btn-sm btn-secondary" onclick='openEdit(<%- JSON.stringify(s) %>)'>Edit</button>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Edit Session Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeEdit()">&times;</button>
+    <h2>Edit Session</h2>
+    <form id="editForm" method="POST">
+      <div class="form-group">
+        <label>Clock In</label>
+        <input type="datetime-local" name="clock_in" id="e_clock_in">
+      </div>
+      <div class="form-group">
+        <label>Clock Out</label>
+        <input type="datetime-local" name="clock_out" id="e_clock_out">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Break (min)</label>
+          <input type="number" name="break_minutes" id="e_break_minutes" min="0">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status" id="e_status">
+            <option value="OPEN">OPEN</option>
+            <option value="CLOSED">CLOSED</option>
+            <option value="VOID">VOID</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <textarea name="note" id="e_note"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Reason for edit</label>
+        <input type="text" name="reason" placeholder="e.g. Correcting missed clock-out">
+      </div>
+      <button type="submit" class="btn btn-primary">Save</button>
+      <button type="button" class="btn btn-secondary" onclick="closeEdit()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function toLocal(d){
+  if(!d)return '';
+  var dt=new Date(d);
+  var off=dt.getTimezoneOffset();
+  dt=new Date(dt.getTime()-off*60000);
+  return dt.toISOString().slice(0,16);
+}
+function openEdit(s){
+  document.getElementById('editForm').action='/staff/admin/attendance/'+s.id+'/edit';
+  document.getElementById('e_clock_in').value=toLocal(s.clock_in);
+  document.getElementById('e_clock_out').value=s.clock_out?toLocal(s.clock_out):'';
+  document.getElementById('e_break_minutes').value=s.break_minutes||0;
+  document.getElementById('e_status').value=s.status;
+  document.getElementById('e_note').value=s.note||'';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('open')}
+document.getElementById('editModal').addEventListener('click',function(e){
+  if(e.target===this) closeEdit();
+});
+</script>
+
+<%- include('../_layout_bottom') %>
