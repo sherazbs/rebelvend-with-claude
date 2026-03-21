@@ -36,10 +36,12 @@ app.use(
   }),
 );
 
-// ── Staff attendance module ─────────────────────────────────────────────────
+// ── Staff modules ───────────────────────────────────────────────────────────
+const db = require('./modules/shared/db');
+const employeeRoutes = require('./modules/employees/employees.routes');
 const attendanceRoutes = require('./modules/attendance/attendance.routes');
-const attendanceService = require('./modules/attendance/attendance.service');
 
+app.use('/staff', employeeRoutes);
 app.use('/staff', attendanceRoutes);
 
 // Contact form endpoint
@@ -104,14 +106,17 @@ app.get('*', (req, res) => {
 
 // ── Start ───────────────────────────────────────────────────────────────────
 async function start() {
-  // Initialise the attendance database if DB env vars are set
+  // Initialise database if DB env vars are set
   if (process.env.DB_HOST) {
     try {
-      await attendanceService.initDatabase();
-      attendanceService.initPool();
-      console.log('Attendance database connected');
+      const path = require('path');
+      // Run SQL in order: employees first (other modules depend on it), then attendance
+      await db.runSQL(path.join(__dirname, 'modules/employees/employees.sql'));
+      await db.runSQL(path.join(__dirname, 'modules/attendance/attendance.sql'));
+      db.initPool();
+      console.log('Database connected');
     } catch (err) {
-      console.error('Attendance DB init failed:', err.message);
+      console.error('DB init failed:', err.message);
     }
   }
 
