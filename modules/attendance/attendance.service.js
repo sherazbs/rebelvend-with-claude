@@ -304,54 +304,42 @@ async function markInviteUsed(inviteId) {
   await getPool().execute(`UPDATE user_invites SET used_at=NOW() WHERE id=?`, [inviteId]);
 }
 
-// ── Work Sessions ───────────────────────────────────────────────────────────
+// ── Attendance ──────────────────────────────────────────────────────────────
 
-async function findOpenSession(employeeId) {
+async function markAttendance(employeeId, workDate, status, note, markedBy) {
+  const [existing] = await getPool().execute(
+    'SELECT id FROM work_sessions WHERE employee_id=? AND work_date=?',
+    [employeeId, workDate],
+  );
+
+  if (existing.length > 0) {
+    await getPool().execute(
+      'UPDATE work_sessions SET status=?, note=?, marked_by=? WHERE id=?',
+      [status, note || null, markedBy, existing[0].id],
+    );
+    return existing[0].id;
+  }
+
+  const [result] = await getPool().execute(
+    'INSERT INTO work_sessions (employee_id, work_date, status, note, marked_by) VALUES (?,?,?,?,?)',
+    [employeeId, workDate, status, note || null, markedBy],
+  );
+  return result.insertId;
+}
+
+async function getTodayAttendance(employeeId) {
   const [rows] = await getPool().execute(
-    `SELECT * FROM work_sessions WHERE employee_id=? AND status='OPEN' LIMIT 1`,
+    'SELECT * FROM work_sessions WHERE employee_id=? AND work_date=CURDATE()',
     [employeeId],
   );
   return rows[0] || null;
 }
 
-async function createWorkSession(employeeId) {
-  const now = new Date();
-  const workDate = now.toISOString().slice(0, 10);
-  const [result] = await getPool().execute(
-    `INSERT INTO work_sessions (employee_id, work_date, clock_in, status)
-     VALUES (?, ?, NOW(), 'OPEN')`,
-    [employeeId, workDate],
-  );
-  return result.insertId;
-}
-
-async function closeWorkSession(sessionId) {
-  // Fetch the session to compute worked_minutes
+async function getRecentAttendance(employeeId, days = 30) {
   const [rows] = await getPool().execute(
-    `SELECT * FROM work_sessions WHERE id=?`,
-    [sessionId],
-  );
-  const session = rows[0];
-  if (!session) throw new Error('Session not found');
-
-  const clockIn = new Date(session.clock_in);
-  const clockOut = new Date();
-  const totalMinutes = Math.floor((clockOut - clockIn) / 60000);
-  const workedMinutes = Math.max(0, totalMinutes - (session.break_minutes || 0));
-
-  await getPool().execute(
-    `UPDATE work_sessions SET clock_out=NOW(), worked_minutes=?, status='CLOSED' WHERE id=?`,
-    [workedMinutes, sessionId],
-  );
-  return { workedMinutes };
-}
-
-async function getTodaySessions(employeeId) {
-  const [rows] = await getPool().execute(
-    `SELECT * FROM work_sessions
-     WHERE employee_id=? AND work_date=CURDATE()
-     ORDER BY clock_in DESC`,
-    [employeeId],
+    `SELECT * FROM work_sessions WHERE employee_id=?
+     ORDER BY work_date DESC LIMIT ?`,
+    [employeeId, days],
   );
   return rows;
 }
@@ -376,7 +364,7 @@ async function getSessionsFiltered({ employeeId, from, to }) {
     params.push(to);
   }
 
-  sql += ` ORDER BY ws.work_date DESC, ws.clock_in DESC`;
+  sql += ` ORDER BY ws.work_date DESC`;
 
   const [rows] = await getPool().execute(sql, params);
   return rows;
@@ -392,23 +380,10 @@ async function getSessionById(id) {
   return rows[0] || null;
 }
 
-async function updateWorkSession(id, data) {
-  const fields = [];
-  const params = [];
-
-  if (data.clock_in !== undefined) { fields.push('clock_in=?'); params.push(data.clock_in); }
-  if (data.clock_out !== undefined) { fields.push('clock_out=?'); params.push(data.clock_out); }
-  if (data.break_minutes !== undefined) { fields.push('break_minutes=?'); params.push(data.break_minutes); }
-  if (data.worked_minutes !== undefined) { fields.push('worked_minutes=?'); params.push(data.worked_minutes); }
-  if (data.status !== undefined) { fields.push('status=?'); params.push(data.status); }
-  if (data.note !== undefined) { fields.push('note=?'); params.push(data.note); }
-
-  if (fields.length === 0) return;
-
-  params.push(id);
+async function updateAttendance(id, status, note) {
   await getPool().execute(
-    `UPDATE work_sessions SET ${fields.join(', ')} WHERE id=?`,
-    params,
+    'UPDATE work_sessions SET status=?, note=? WHERE id=?',
+    [status, note || null, id],
   );
 }
 
@@ -452,14 +427,13 @@ module.exports = {
   createInvite,
   findValidInvite,
   markInviteUsed,
-  // work sessions
-  findOpenSession,
-  createWorkSession,
-  closeWorkSession,
-  getTodaySessions,
+  // attendance
+  markAttendance,
+  getTodayAttendance,
+  getRecentAttendance,
   getSessionsFiltered,
   getSessionById,
-  updateWorkSession,
+  updateAttendance,
   // events
   logEvent,
 };

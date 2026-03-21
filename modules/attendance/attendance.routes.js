@@ -14,8 +14,7 @@ router.post('/set-password', ctrl.handleSetPassword);
 
 // ── Employee ────────────────────────────────────────────────────────────────
 router.get('/attendance', requireAuth, ctrl.showAttendance);
-router.post('/attendance/clock-in', requireAuth, ctrl.handleClockIn);
-router.post('/attendance/clock-out', requireAuth, ctrl.handleClockOut);
+router.post('/attendance/mark-present', requireAuth, ctrl.handleMarkPresent);
 
 // ── Admin ───────────────────────────────────────────────────────────────────
 router.get('/admin/employees', requireAuth, requireAdmin, ctrl.showAdminEmployees);
@@ -25,6 +24,7 @@ router.post('/admin/employees/:id/deactivate', requireAuth, requireAdmin, ctrl.h
 router.post('/admin/employees/:id/invite', requireAuth, requireAdmin, ctrl.handleSendInvite);
 
 router.get('/admin/attendance', requireAuth, requireAdmin, ctrl.showAdminAttendance);
+router.post('/admin/attendance', requireAuth, requireAdmin, ctrl.handleAdminMarkAttendance);
 router.post('/admin/attendance/:id/edit', requireAuth, requireAdmin, ctrl.handleEditSession);
 router.get('/admin/attendance/export', requireAuth, requireAdmin, ctrl.handleExportCSV);
 

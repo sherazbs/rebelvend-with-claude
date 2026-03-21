@@ -136,63 +136,35 @@ exports.handleSetPassword = async (req, res) => {
 exports.showAttendance = async (req, res) => {
   try {
     const { employeeId } = req.session.user;
-    const openSession = await svc.findOpenSession(employeeId);
-    const sessions = await svc.getTodaySessions(employeeId);
-    res.render('staff/attendance', { openSession, sessions });
+    const today = await svc.getTodayAttendance(employeeId);
+    const recent = await svc.getRecentAttendance(employeeId, 30);
+    res.render('staff/attendance', { today, recent });
   } catch (err) {
     console.error('Attendance page error:', err);
     flash(req, 'error', 'Failed to load attendance.');
-    res.render('staff/attendance', { openSession: null, sessions: [] });
+    res.render('staff/attendance', { today: null, recent: [] });
   }
 };
 
-exports.handleClockIn = async (req, res) => {
+exports.handleMarkPresent = async (req, res) => {
   try {
     const { employeeId, id: userId } = req.session.user;
 
-    // Ensure employee is active
     const emp = await svc.getEmployeeById(employeeId);
     if (!emp || !emp.is_active) {
       flash(req, 'error', 'Account is not active.');
       return res.redirect('/staff/attendance');
     }
 
-    // Ensure no open session
-    const open = await svc.findOpenSession(employeeId);
-    if (open) {
-      flash(req, 'error', 'You already have an open session.');
-      return res.redirect('/staff/attendance');
-    }
+    const workDate = new Date().toISOString().slice(0, 10);
+    const sessionId = await svc.markAttendance(employeeId, workDate, 'PRESENT', null, userId);
+    await svc.logEvent(sessionId, employeeId, 'MARK_PRESENT', null, userId);
 
-    const sessionId = await svc.createWorkSession(employeeId);
-    await svc.logEvent(sessionId, employeeId, 'CLOCK_IN', null, userId);
-
-    flash(req, 'success', 'Clocked in.');
+    flash(req, 'success', 'Marked present for today.');
     return res.redirect('/staff/attendance');
   } catch (err) {
-    console.error('Clock-in error:', err);
-    flash(req, 'error', 'Clock-in failed.');
-    return res.redirect('/staff/attendance');
-  }
-};
-
-exports.handleClockOut = async (req, res) => {
-  try {
-    const { employeeId, id: userId } = req.session.user;
-    const open = await svc.findOpenSession(employeeId);
-    if (!open) {
-      flash(req, 'error', 'No open session to clock out.');
-      return res.redirect('/staff/attendance');
-    }
-
-    await svc.closeWorkSession(open.id);
-    await svc.logEvent(open.id, employeeId, 'CLOCK_OUT', null, userId);
-
-    flash(req, 'success', 'Clocked out.');
-    return res.redirect('/staff/attendance');
-  } catch (err) {
-    console.error('Clock-out error:', err);
-    flash(req, 'error', 'Clock-out failed.');
+    console.error('Mark present error:', err);
+    flash(req, 'error', 'Failed to mark attendance.');
     return res.redirect('/staff/attendance');
   }
 };
@@ -360,41 +332,49 @@ exports.showAdminAttendance = async (req, res) => {
   }
 };
 
+exports.handleAdminMarkAttendance = async (req, res) => {
+  try {
+    const { employee_id, work_date, status, note } = req.body;
+    const userId = req.session.user.id;
+
+    if (!employee_id || !work_date || !status) {
+      flash(req, 'error', 'Employee, date, and status are required.');
+      return res.redirect('/staff/admin/attendance');
+    }
+
+    const sessionId = await svc.markAttendance(employee_id, work_date, status, note, userId);
+    const eventType = status === 'PRESENT' ? 'MARK_PRESENT' : 'MARK_ABSENT';
+    await svc.logEvent(sessionId, employee_id, eventType, note || 'Admin', userId);
+
+    flash(req, 'success', 'Attendance recorded.');
+    return res.redirect('/staff/admin/attendance');
+  } catch (err) {
+    console.error('Admin mark attendance error:', err);
+    flash(req, 'error', 'Failed to record attendance.');
+    return res.redirect('/staff/admin/attendance');
+  }
+};
+
 exports.handleEditSession = async (req, res) => {
   try {
     const { id } = req.params;
-    const b = req.body;
+    const { status, note } = req.body;
     const userId = req.session.user.id;
 
     const session = await svc.getSessionById(id);
     if (!session) {
-      flash(req, 'error', 'Session not found.');
+      flash(req, 'error', 'Record not found.');
       return res.redirect('/staff/admin/attendance');
     }
 
-    const updateData = {};
-    if (b.clock_in) updateData.clock_in = b.clock_in;
-    if (b.clock_out) updateData.clock_out = b.clock_out;
-    if (b.break_minutes !== undefined) updateData.break_minutes = parseInt(b.break_minutes, 10);
-    if (b.status) updateData.status = b.status;
-    if (b.note !== undefined) updateData.note = b.note;
+    await svc.updateAttendance(id, status, note);
+    await svc.logEvent(id, session.employee_id, 'EDIT', req.body.reason || 'Admin edit', userId);
 
-    // Recalculate worked_minutes if both clock_in and clock_out are present
-    const clockIn = new Date(updateData.clock_in || session.clock_in);
-    const clockOut = updateData.clock_out ? new Date(updateData.clock_out) : (session.clock_out ? new Date(session.clock_out) : null);
-    if (clockOut) {
-      const breakMin = updateData.break_minutes !== undefined ? updateData.break_minutes : session.break_minutes;
-      updateData.worked_minutes = Math.max(0, Math.floor((clockOut - clockIn) / 60000) - breakMin);
-    }
-
-    await svc.updateWorkSession(id, updateData);
-    await svc.logEvent(id, session.employee_id, 'EDIT', b.reason || 'Admin edit', userId);
-
-    flash(req, 'success', 'Session updated.');
+    flash(req, 'success', 'Record updated.');
     return res.redirect('/staff/admin/attendance');
   } catch (err) {
     console.error('Edit session error:', err);
-    flash(req, 'error', 'Failed to update session.');
+    flash(req, 'error', 'Failed to update record.');
     return res.redirect('/staff/admin/attendance');
   }
 };
@@ -408,12 +388,10 @@ exports.handleExportCSV = async (req, res) => {
       to: to || null,
     });
 
-    const header = 'Employee,Date,Clock In,Clock Out,Break (min),Worked (min),Status,Note';
+    const header = 'Employee,Date,Status,Note';
     const rows = sessions.map((s) => {
-      const ci = s.clock_in ? new Date(s.clock_in).toLocaleTimeString('en-GB') : '';
-      const co = s.clock_out ? new Date(s.clock_out).toLocaleTimeString('en-GB') : '';
       const note = (s.note || '').replace(/"/g, '""');
-      return `"${s.full_name}",${s.work_date ? new Date(s.work_date).toISOString().slice(0, 10) : ''},${ci},${co},${s.break_minutes},${s.worked_minutes || ''},${s.status},"${note}"`;
+      return `"${s.full_name}",${s.work_date ? new Date(s.work_date).toISOString().slice(0, 10) : ''},${s.status},"${note}"`;
     });
 
     const csv = [header, ...rows].join('\n');
